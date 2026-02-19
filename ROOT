@@ -16,11 +16,5 @@ session Dsc = HOL +
     List_Changes
     Bernstein_Split
     NewDsc
-    Dsc_Bern
-    Dsc_Exec
-    Sturm_Isolate
-    Bench_Export
-    Radical
-    Supplementary_Functions
   document_files
     "root.tex"
