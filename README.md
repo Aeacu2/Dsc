@@ -13,7 +13,7 @@ To check the termination, soundness, and completeness proofs for `dsc` and `newd
 
 `isabelle build -v -D .`
 
-To check everyting including the files containing definitions and proofs for code generation and experiments, add `Dsc_Bern.thy`, `Dsc_Exec.thy`, `Sturm_Isolate.thy`, `Radical.thy`, and `Supplementary_Functions.thy` under `theories` in the ROOT file. Then run the command above. It can take longer time with a slower computer. If a build times out, please try doubling the timeout in the ROOT file. We are sorry for the inconvinence.
+To check everyting including the files containing definitions and proofs for code generation and experiments, add `Dsc_Bern`, `Dsc_Exec`, `Sturm_Isolat`, `Radical`, and `Supplementary_Functions` under `theories` in the ROOT file. Then run the command above. It can take longer time with a slower computer. If a build times out, please try doubling the timeout in the ROOT file. We are sorry for the inconvinence.
 
 To run the experiments, use Poly/ML 5.9.1 (which comes with Isabelle 2025) or Poly/ML 5.9.2 (which comes with Isabelle 2025-2) with the following command:
 
