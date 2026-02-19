@@ -9,11 +9,11 @@ We also checked the compatibility with the newest version of Isabelle (2025-2) a
 
 Please install Isabelle 2025-2 or Isasbelle 2025 (March 2025) with their corresponding Archives of Formal Proofs configured. 
 
-To check the termination, soundness, and completeness proofs for `dsc` and `newdsc`, run the following command in the base directory of this repository (where the `ROOT` file is located):
+To check all definitions and proofs, run the following command in the base directory of this repository (where the `ROOT` file is located):
 
 `isabelle build -v -D .`
 
-To check everyting including the files containing definitions and proofs for code generation and experiments, add `Dsc_Bern`, `Dsc_Exec`, `Sturm_Isolate`, `Radical`, and `Supplementary_Functions` under `theories` in the ROOT file. Then run the command above. It can take longer time with a slower computer. If a build times out, please try doubling the timeout in the ROOT file. We are sorry for the inconvinence.
+To only check the termination, soundness, and completeness proofs for `dsc` and `newdsc`, remove `Dsc_Bern`, `Dsc_Exec`, `Sturm_Isolate`, `Radical`, and `Supplementary_Functions` under `theories` in the ROOT file. Then run the command above. 
 
 To run the experiments, use Poly/ML 5.9.2 (which comes with Isabelle 2025-2) or Poly/ML 5.9.1 (which comes with Isabelle 2025) with the following command:
 
