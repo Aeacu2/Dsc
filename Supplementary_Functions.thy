@@ -123,7 +123,7 @@ proof -
     using square_free_liftR[OF sf_rad] .
 
   show ?thesis
-  proof (rule dsc_terminates_squarefree_real[where P=P and p="degree P" and a=a and b=b])
+  proof (rule dsc_terminates_squarefree[where P=P and p="degree P" and a=a and b=b])
     show "P \<noteq> 0" using P0 .
     show "degree P \<le> degree P" by simp
     show "degree P \<noteq> 0" using deg0 .
@@ -244,7 +244,7 @@ proof -
   qed
 
   show ?thesis
-  proof (rule dsc_terminates_squarefree_real[where P=P and p="degree P" and a=a and b=b])
+  proof (rule dsc_terminates_squarefree[where P=P and p="degree P" and a=a and b=b])
     show "P \<noteq> 0" using P0 .
     show "degree P \<le> degree P" by simp
     show "degree P \<noteq> 0" using deg0 .
@@ -492,7 +492,7 @@ proof -
     using square_free_liftR[OF sf_rad] .
 
   show ?thesis
-  proof (rule newdsc_terminates_squarefree_real[where P=P and p="degree P"])
+  proof (rule newdsc_terminates_squarefree[where P=P and p="degree P"])
     show "P \<noteq> 0" using P0 .
     show "degree P \<le> degree P" by simp
     show "degree P \<noteq> 0" using deg0 .
@@ -734,7 +734,7 @@ proof -
     by (simp add: radical_real_poly_square_free)
 
   show ?thesis
-  proof (rule newdsc_terminates_squarefree_real[where P=P and p="degree P"])
+  proof (rule newdsc_terminates_squarefree[where P=P and p="degree P"])
     show "P \<noteq> 0" using P0 .
     show "degree P \<le> degree P" by simp
     show "degree P \<noteq> 0" using deg0 .
