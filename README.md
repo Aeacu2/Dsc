@@ -11,9 +11,9 @@ Dsc.thy formalises dsc as a partial function, proves conditional termination, so
 
 NewDsc.thy proves conditional termination, soundness, and completeness of newdsc, using an additional splitting lemma for Bernstein coefficients, which took the following three .thy files ot prove.
 
-List_Changes.thy proves many lemmas about sign changes in a list. In particular, the number of coefficient sign changes is subadditive with respect to the De Casteljau split.
-
 Triangle.thy formalises the De Casteljau triangle construction and proves basic algebraic identities showing how the triangle computes Bernstein coefficients under subdivision.
+
+List_Changes.thy proves many lemmas bounding sign changes during the formation of the De Casteljau triagle.
 
 Bernstein_Split.thy combines them to prove the splitting lemma required for verifying NewDsc.
 
