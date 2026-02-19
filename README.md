@@ -4,11 +4,10 @@ This repository contains an Isabelle/HOL formalization of real root isolation al
 
 The verification was completed in Isabelle 2025(March 2025) with AFP 2025, which can be downloaded at https://isabelle.in.tum.de/download_past.html and https://foss.heptapod.net/isa-afp/afp-2025
 
-We also checked the compatibility with the newest version of Isabelle (2025-2) and its accompanying AFP 2025-2. All of our own proofs check out, and the exported codes run as well as before. However, some existing AFP entries that we import run into errors with the new version. For example, Polynomioal_Factorization and Sturm_Tarski. This will result in errors when building, so please use Isabelle 2025(March 2025) with AFP 2025 when running the isabelle build command.
-
 ## How to Build
 
 Please install Isabelle 2025(March 2025) with the Archive of Formal Proofs (AFP 2025) configured. 
+We also checked the compatibility with the newest version of Isabelle (2025-2) and its accompanying AFP 2025-2.
 
 To check the termination, soundness, and completeness proofs for `dsc` and `newdsc`, run the following command in the base directory of this repository (where the `ROOT` file is located):
 
