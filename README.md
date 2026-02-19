@@ -13,7 +13,9 @@ To check all definitions and proofs, run the following command in the base direc
 
 `isabelle build -v -D .`
 
-To only check the termination, soundness, and completeness proofs for `dsc` and `newdsc`, remove `Dsc_Bern`, `Dsc_Exec`, `Sturm_Isolate`, `Radical`, and `Supplementary_Functions` under `theories` in the ROOT file. Then run the command above. 
+This can take pretty long. If it times out, please double the timeout in ROOT and try again. 
+
+Alternatively, to only check the termination, soundness, and completeness proofs for `dsc` and `newdsc`, remove `Dsc_Bern`, `Dsc_Exec`, `Sturm_Isolate`, `Radical`, and `Supplementary_Functions` under `theories` in the ROOT file. Then run the command above. This should be much faster.
 
 To run the experiments, use Poly/ML 5.9.2 (which comes with Isabelle 2025-2) or Poly/ML 5.9.1 (which comes with Isabelle 2025) with the following command:
 
