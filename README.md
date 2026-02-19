@@ -1,8 +1,8 @@
 # Dsc: Faster Verified Real Root Isolation with Descartes' Rule of Signs
 
-This repository provides an Isabelle/HOL formalization of real root isolation algorithms based on Descartes' Rule of Signs. Real root isolation is a fundamental subroutine in computer algebra, but most existing formally verified procedures rely on Sturm's theorem. We take an initial step toward efficient verified real root isolation by verifying a classical bisection procedure (`dsc`) and a Newton-accelerated variant (`newdsc`). 
+This repository contains an Isabelle/HOL formalization of real root isolation algorithms based on Descartes' Rule of Signs. Real root isolation is a fundamental subroutine in computer algebra, but most existing formally verified procedures rely on Sturm's theorem. We take an initial step toward efficient verified real root isolation using Descartes' Rule of Signs by verifying a classical bisection procedure (`dsc`) and a Newton-accelerated variant (`newdsc`). 
 
-The verification was completed in Isabelle 2025-1.
+The verification was completed in Isabelle 2025(March 2025), which can be downloaded at https://isabelle.in.tum.de/download_past.html
 
 ## How to Build
 
