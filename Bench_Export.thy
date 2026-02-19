@@ -9,7 +9,7 @@ definition mk_int :: "Code_Numeral.integer \<Rightarrow> int" where
   "mk_int = Code_Numeral.int_of_integer"
 
 definition mk_rat :: "Code_Numeral.integer \<Rightarrow> Code_Numeral.integer \<Rightarrow> rat" where
-  "mk_rat n d = Rat.Fract (mk_int n) (mk_int d)"  (* exactly your original constructor *)
+  "mk_rat n d = Rat.Fract (mk_int n) (mk_int d)" 
 
 definition mk_real :: "Code_Numeral.integer \<Rightarrow> real" where
   "mk_real k = of_int (mk_int k)"

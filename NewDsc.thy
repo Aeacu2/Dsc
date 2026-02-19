@@ -4,8 +4,6 @@ theory NewDsc
     Bernstein_Split  
 begin
 
-subsection \<open>Parameters for quadratic / linear steps\<close>
-
 definition Nq :: "nat \<Rightarrow> nat" where
   "Nq N = N * N"
 
@@ -439,7 +437,7 @@ proof -
 qed
 
 
-lemma newdsc_terminates_squarefree_real:
+theorem newdsc_terminates_squarefree:
   fixes P :: "real poly"
   assumes P0: "P \<noteq> 0"
       and deg: "degree P \<le> p"
@@ -456,7 +454,7 @@ proof -
     using newdsc_domI_general[OF \<delta>_pos small] by blast
 qed
 
-lemma newdsc_sound:
+theorem newdsc_sound:
   assumes dom: "newdsc_dom (p, a, b, N, P)"
       and deg: "degree P \<le> p"
       and P0:  "P \<noteq> 0"
@@ -666,7 +664,7 @@ proof (induction p a b N P rule: newdsc.pinduct)
 qed
 
 
-lemma newdsc_complete:
+theorem newdsc_complete:
   assumes dom: "newdsc_dom (p,a,b,N,P)"
       and deg: "degree P \<le> p"
       and P0:  "P \<noteq> 0"
@@ -1302,7 +1300,7 @@ lemma newdsc_psimps_if:
                     in mid_root @ newdsc p a m N' P @ newdsc p m b N' P))))"
 proof -
   have dom: "newdsc_dom (p, a, b, N, P)"
-    using newdsc_terminates_squarefree_real ab N2 P0 deg p0 sf
+    using newdsc_terminates_squarefree ab N2 P0 deg p0 sf
     by blast
   show ?thesis
     using newdsc.psimps[OF dom] P0 ab

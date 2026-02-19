@@ -3,7 +3,7 @@ theory Dsc_Misc
     Main
     Three_Circles.Three_Circles
     Polynomial_Factorization.Square_Free_Factorization
-    List_changes
+    List_Changes
 begin
 
 definition mu :: "real \<Rightarrow> real \<Rightarrow> real \<Rightarrow> nat"
