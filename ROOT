@@ -16,5 +16,3 @@ session Dsc = HOL +
     List_Changes
     Bernstein_Split
     NewDsc
-  document_files
-    "root.tex"

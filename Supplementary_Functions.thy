@@ -212,7 +212,7 @@ lemma wrap_real_simp:  "wrap_real a b R = (let P =  (radical_real_poly R) in
                          in (if poly P m = 0 then [(m, m)] else [])
                             @ dsc p a m P @ dsc p m b P)
         else [])))"
-  by (smt (verit) div_by_0 dsc_psimps_if_squarefree_real gcd_eq_0_iff pderiv_0 radical_real_poly_def
+  by (smt (verit) div_by_0 dsc_psimps_if gcd_eq_0_iff pderiv_0 radical_real_poly_def
       radical_real_poly_square_free wrap_real_def)
 
 lemma wrap_real_code[code]:  "wrap_real a b R = (let P = (radical_real_poly R) in
