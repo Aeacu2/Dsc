@@ -10,7 +10,7 @@ To check the proofs and generate the PDF proof document for this entry, install 
 
 Run the following command in the base directory of this repository (where the `ROOT` file is located):
 
-`isabelle build -v -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML" -D .`
+`isabelle build -v -D .`
 
 The build took around 0:10:00 elapsed time and 0:45:00 cpu time on an Apple M4 CPU with 16G memory. If a build times out, please try doubling the timeout in ROOT.
 
