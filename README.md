@@ -6,13 +6,17 @@ The verification was completed in Isabelle 2025(March 2025), which can be downlo
 
 ## How to Build
 
-To check the proofs and generate the PDF proof document for this entry, install Isabelle 2025 with the Archive of Formal Proofs (AFP) configured. 
+To check the proofs, install Isabelle 2025 with the Archive of Formal Proofs (AFP) configured. 
 
 Run the following command in the base directory of this repository (where the `ROOT` file is located):
 
 `isabelle build -v -D .`
 
 The build took around 0:10:00 elapsed time and 0:45:00 cpu time on an Apple M4 CPU with 16G memory. If a build times out, please try doubling the timeout in ROOT.
+
+If a suitable LaTeX distribution is installed and in PATH, then the following command should check the proofs and generate a proof document:
+
+`isabelle build -v -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML" -D .`
 
 To run the experiments, use Poly/ML 5.9.1 (which comes with Isabelle 2025) with the following command:
 
