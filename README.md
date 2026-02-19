@@ -13,13 +13,13 @@ NewDsc.thy proves conditional termination, soundness, and completeness of newdsc
 
 List_Changes.thy proves many lemmas about sign changes in a list. In particular, the number of coefficient sign changes is subadditive with respect to the De Casteljau split.
 
-Triangle.thy formalizes the De Casteljau triangle construction and proves basic algebraic identities showing how the triangle computes Bernstein coefficients under subdivision.
+Triangle.thy formalises the De Casteljau triangle construction and proves basic algebraic identities showing how the triangle computes Bernstein coefficients under subdivision.
 
 Bernstein_Split.thy combines them to prove the splitting lemma required for verifying NewDsc.
 
 Dsc_Exec.thy defines tail-recusive versions of dsc and newdsc for exporting code ("dsc_exec" and "newdsc_exec"). The equivalence between the corresponding functions are proven here.
 
-Sturm_Isolate.thy extracts a real root isolation function "isolate" developed by Thiemann and Yamada in Isabelle~\cite{algnum}, which is the best performing verified real root isolation algorithm we are aware of. To ensure fairness, we customized their algorithm in order to remove extra steps in their original code such as square-free factorization and packaging algebraic numbers. We did not verify our particular customization of their algorithm.
+Sturm_Isolate.thy extracts a real root isolation function "isolate" developed by Thiemann and Yamada in Isabelle, which is the best performing verified real root isolation algorithm we are aware of. To ensure fairness, we customized their algorithm in order to remove extra steps in their original code such as square-free factorization and packaging algebraic numbers. We did not verify our particular customization of their algorithm.
 
 Bench_Export.thy exports the functions isolate, dsc_exec, and newdsc_exec to executable code. The output is bench_gen.sml
 
