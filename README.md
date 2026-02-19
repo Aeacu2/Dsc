@@ -2,20 +2,18 @@
 
 This repository contains an Isabelle/HOL formalization of real root isolation algorithms based on Descartes' Rule of Signs. Real root isolation is a fundamental subroutine in computer algebra, but most existing formally verified procedures rely on Sturm's theorem. We take an initial step toward efficient verified real root isolation using Descartes' Rule of Signs by verifying a classical bisection procedure (`dsc`) and a Newton-accelerated variant (`newdsc`). 
 
-The verification was completed in Isabelle 2025(March 2025) with AFP 2025, which can be downloaded at https://isabelle.in.tum.de/download_past.html and https://foss.heptapod.net/isa-afp/afp-2025
+The verification was completed in Isabelle 2025(March 2025) with AFP 2025, which can be downloaded at https://isabelle.in.tum.de/download_past.html and https://foss.heptapod.net/isa-afp/afp-2025 
+We also checked the compatibility with the newest version of Isabelle (2025-2) and its accompanying AFP 2025-2.
 
 ## How to Build
 
-Please install Isabelle 2025(March 2025) with the Archive of Formal Proofs (AFP 2025) configured. 
-We also checked the compatibility with the newest version of Isabelle (2025-2) and its accompanying AFP 2025-2.
+Please install Isabelle 2025-2 or Isasbelle 2025 (March 2025) with their corresponding Archives of Formal Proofs configured. 
 
 To check the termination, soundness, and completeness proofs for `dsc` and `newdsc`, run the following command in the base directory of this repository (where the `ROOT` file is located):
 
 `isabelle build -v -D .`
 
-To check everyting including the files containing definitions and proofs for code generation and experiments, add `Dsc_Bern.thy`, `Dsc_Exec.thy`, `Sturm_Isolate.thy`, `Radical.thy`, and `Supplementary_Functions.thy` under `theories` in the ROOT file. Then run the command above.
-
-The build took around 0:10:00 elapsed time and 0:50:00 cpu time on an Apple M4 CPU with 16G memory. It can take extremely long with a slower computer. If a build times out, please try doubling the timeout in the ROOT file. We are sorry for the inconvinence.
+To check everyting including the files containing definitions and proofs for code generation and experiments, add `Dsc_Bern.thy`, `Dsc_Exec.thy`, `Sturm_Isolate.thy`, `Radical.thy`, and `Supplementary_Functions.thy` under `theories` in the ROOT file. Then run the command above. It can take longer time with a slower computer. If a build times out, please try doubling the timeout in the ROOT file. We are sorry for the inconvinence.
 
 To run the experiments, use Poly/ML 5.9.1 (which comes with Isabelle 2025) or Poly/ML 5.9.2 (which comes with Isabelle 2025-2) with the following command:
 
