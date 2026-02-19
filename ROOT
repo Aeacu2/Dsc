@@ -1,5 +1,3 @@
-chapter AFP
-
 session Dsc = HOL +
   options [timeout = 3000]
   sessions
@@ -16,3 +14,8 @@ session Dsc = HOL +
     List_Changes
     Bernstein_Split
     NewDsc
+    Dsc_Bern
+    Dsc_Exec
+    Sturm_Isolate
+    Radical
+    Supplementary_Functions
