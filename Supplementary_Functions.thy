@@ -3,7 +3,11 @@ theory Supplementary_Functions
           Dsc
           NewDsc
           Dsc_Bern
+          Dsc_Taylor
           Radical
+          Algebraic_Numbers.Algebraic_Numbers_External_Code
+          Descartes_Sign_Rule.Descartes_Sign_Rule
+          Dsc_Refine
 begin
 
 lemma Poly_eq_foldr_pCons:
@@ -1823,6 +1827,384 @@ proof -
     using tr by simp
 qed
 
+partial_function (tailrec) dsc_fast_main_exec ::
+  "real poly \<Rightarrow> (real \<times> real) list \<Rightarrow> (real \<times> real) list \<Rightarrow> (real \<times> real) list"
+where
+  [code]:
+  "dsc_fast_main_exec P todo acc =
+     (case todo of
+        [] \<Rightarrow> acc
+      | (a,b) # todo' \<Rightarrow>
+          (let v = fast_descartes_roots_test a b P in
+           if v = 0 then
+             dsc_fast_main_exec P todo' acc
+           else if v = 1 then
+             dsc_fast_main_exec P todo' ((a,b) # acc)
+           else
+             (let m = (a + b) / 2;
+                  acc' = (if poly P m = 0 then (m,m) # acc else acc)
+              in dsc_fast_main_exec P ((a,m) # (m,b) # todo') acc')))"
 
+definition dsc_fast_exec :: "real \<Rightarrow> real \<Rightarrow> real poly \<Rightarrow> (real \<times> real) list"
+where
+  "dsc_fast_exec a b P = (dsc_fast_main_exec P [(a,b)] [])"
+
+definition dsc_inv_array :: "real poly \<Rightarrow> (real \<times> real) list \<Rightarrow> (real \<times> real) list \<Rightarrow> (real \<times> real) list \<times> (real \<times> real) list \<Rightarrow> bool" where
+  "dsc_inv_array P todo_init acc_init = (\<lambda>(todo, acc). 
+      (\<forall>(a, b) \<in> set todo. a < b \<and> dsc_dom (degree P, a, b, P)) \<and> 
+      dsc_main_exec P (rev todo) acc = dsc_main_exec P (rev todo_init) acc_init)"
+
+definition dsc_imp_array :: "real poly \<Rightarrow> (real \<times> real) list \<Rightarrow> (real \<times> real) list \<Rightarrow> (real \<times> real) list nres" where
+  "dsc_imp_array P todo_init acc_init = do {
+     state_final \<leftarrow> WHILEIT (dsc_inv_array P todo_init acc_init)
+       (\<lambda>(todo, acc). todo \<noteq> [])
+       (\<lambda>(todo, acc). do {
+           (a, b) \<leftarrow> RETURN (last todo);
+           todo' \<leftarrow> RETURN (butlast todo);
+           let v = descartes_roots_test_sc a b P;
+           if v = 0 then
+             RETURN (todo', acc)
+           else if v = 1 then do {
+             acc' \<leftarrow> RETURN ((a, b) # acc);
+             RETURN (todo', acc')
+           } else do {
+             let m = (a + b) / 2;
+             acc' \<leftarrow> RETURN (if poly P m = 0 then (m, m) # acc else acc);
+             todo'' \<leftarrow> RETURN (todo' @ [(m, b)]);
+             todo''' \<leftarrow> RETURN (todo'' @ [(a, m)]);
+             RETURN (todo''', acc')
+           }
+       })
+       (todo_init, acc_init);
+     RETURN (snd state_final)
+  }"
+
+lemma dsc_imp_array_refine:
+  assumes "P \<noteq> 0" 
+      and deg: "degree P \<noteq> 0"
+      and "square_free P"
+      and init_inv: "\<forall>(a, b) \<in> set todo. a < b \<and> dsc_dom (degree P, a, b, P)"
+  shows "dsc_imp_array P todo acc \<le> RETURN (dsc_main_exec P (rev todo) acc)"
+proof -
+  have mu_dec:
+    "\<And>a b. a < b \<Longrightarrow> delta_P P < b - a \<Longrightarrow>
+     mu (delta_P P) a ((a + b) / 2) < mu (delta_P P) a b \<and>
+     mu (delta_P P) ((a + b) / 2) b < mu (delta_P P) a b"
+    using mu_halve_strict [OF delta_P_pos] 
+    using \<open>degree P \<noteq> 0\<close>
+    by (metis degree_0)
+
+  have width_cond: "\<And>a b. a < b \<Longrightarrow> 
+    descartes_roots_test_sc a b P > 1 \<Longrightarrow> delta_P P < b - a"
+    using Bernstein_changes_small_interval_le_1 [OF _ _ _ _]
+    by (smt (verit, ccfv_threshold) Bernstein_changes_1_one_root
+        Bernstein_changes_test assms(2,3) degree_0
+        descartes_roots_test_sc_eq_Bernstein_changes dual_order.refl
+        less_numeral_extra(2) nat_int not_le of_nat_le_0_iff roots_in_def
+        rsquarefree_lift semiring_norm(160))
+
+  have helper: "\<And>m1 m2 m X. m1 < m \<Longrightarrow> m2 < m \<Longrightarrow> multp (<) (add_mset m1 (add_mset m2 X)) (add_mset m X)"
+  proof -
+    fix m1 m2 m X
+    assume "m1 < m" "m2 < m"
+    have "multp (<) (X + {#m1, m2#}) (X + {#m#})"
+      by (rule one_step_implies_multp) (use \<open>m1 < m\<close> \<open>m2 < m\<close> in auto)
+    then show "multp (<) (add_mset m1 (add_mset m2 X)) (add_mset m X)"
+      by (simp add: ac_simps)
+  qed
+
+  have descent1: "\<And>a b. a < b \<Longrightarrow> descartes_roots_test_sc a b P \<noteq> 0 \<Longrightarrow> descartes_roots_test_sc a b P \<noteq> 1 \<Longrightarrow>
+     mu (delta_P P) a ((a + b) / 2) < mu (delta_P P) a b"
+  proof -
+    fix a b assume "a < b" "descartes_roots_test_sc a b P \<noteq> 0" "descartes_roots_test_sc a b P \<noteq> 1"
+    then have "descartes_roots_test_sc a b P > 1" by auto
+    with \<open>a < b\<close> show "mu (delta_P P) a ((a + b) / 2) < mu (delta_P P) a b"
+      using width_cond mu_dec by blast
+  qed
+
+  have descent2: "\<And>a b. a < b \<Longrightarrow> descartes_roots_test_sc a b P \<noteq> 0 \<Longrightarrow> descartes_roots_test_sc a b P \<noteq> 1 \<Longrightarrow>
+     mu (delta_P P) ((a + b) / 2) b < mu (delta_P P) a b"
+  proof -
+    fix a b assume "a < b" "descartes_roots_test_sc a b P \<noteq> 0" "descartes_roots_test_sc a b P \<noteq> 1"
+    then have "descartes_roots_test_sc a b P > 1" by auto
+    with \<open>a < b\<close> show "mu (delta_P P) ((a + b) / 2) b < mu (delta_P P) a b"
+      using width_cond mu_dec by blast
+  qed
+
+  show ?thesis
+    unfolding dsc_imp_array_def
+    apply (refine_vcg wf_dsc_rel[of P])
+    using assms(4) dsc_inv_array_def apply force
+    subgoal premises prems for s a b aa ba
+    proof -
+      have "a \<noteq> []" using prems(2,3) by simp
+      then have a_eq: "a = butlast a @ [(aa, ba)]" using prems(4) by (metis append_butlast_last_id)
+      then have rev_a: "rev a = (aa, ba) # rev (butlast a)" by simp
+      show ?thesis
+        using prems rev_a
+        unfolding dsc_inv_array_def
+        by (auto dest: in_set_butlastD simp: dsc_main_exec.simps Let_def)
+    qed
+    subgoal premises prems for s a b aa ba
+    proof -
+      have "a \<noteq> []" using prems(2,3) by simp
+      then have a_eq: "a = butlast a @ [(aa, ba)]" using prems(4) by (metis append_butlast_last_id)
+      have mset_a: "mset a = mset (butlast a) + {#(aa, ba)#}"
+        using a_eq mset_append
+        by (metis mset_single_iff_right)
+      show ?thesis
+        using prems
+        unfolding dsc_rel_def
+        by (auto simp: mset_a subset_implies_multp)
+    qed
+    subgoal premises prems for s a b aa ba
+    proof -
+      have "a \<noteq> []" using prems(2,3) by simp
+      then have "a = butlast a @ [(aa, ba)]" using prems(4) by (metis append_butlast_last_id)
+      then have "rev a = (aa, ba) # rev (butlast a)" by simp
+      with prems show ?thesis
+        unfolding dsc_inv_array_def Let_def
+        by (auto dest: in_set_butlastD simp: dsc_main_exec.simps Let_def)
+    qed
+    subgoal premises prems for s a b aa ba
+    proof -
+      have "a \<noteq> []" using prems(2,3) by simp
+      then have a_eq: "a = butlast a @ [(aa, ba)]" using prems(4) by (metis append_butlast_last_id)
+      have mset_a: "mset a = mset (butlast a) + {#(aa, ba)#}"
+        using a_eq mset_append
+        by (metis mset_single_iff_right)
+      show ?thesis
+        using prems
+        unfolding dsc_rel_def
+        by (auto simp: mset_a subset_implies_multp)
+    qed
+    subgoal premises prems for s a b aa ba
+    proof -
+      have not_empty: "a \<noteq> []" using prems(2,3) by simp
+      then have a_eq: "a = butlast a @ [(aa, ba)]" using prems(4) by (metis append_butlast_last_id)
+      then have rev_a: "rev a = (aa, ba) # rev (butlast a)" by simp
+      
+      have in_set: "(aa, ba) \<in> set a" 
+        using not_empty prems(4) last_in_set by metis
+  
+      have safe_unroll:
+        "dsc_main_exec P ((aa, ba) # rev (butlast a)) b =
+         (let v = descartes_roots_test_sc aa ba P in
+          if v = 0 then dsc_main_exec P (rev (butlast a)) b
+          else if v = 1 then dsc_main_exec P (rev (butlast a)) ((aa, ba) # b)
+          else let m = (aa + ba) / 2 in 
+               let acc' = (if poly P m = 0 then (m, m) # b else b)
+               in dsc_main_exec P ((aa, m) # (m, ba) # rev (butlast a)) acc')"
+        by (subst dsc_main_exec.simps) (simp add: Let_def)
+  
+      show ?thesis
+        using prems assms in_set rev_a
+        unfolding dsc_inv_array_def
+        by (auto dest: in_set_butlastD simp: dsc_terminates_squarefree safe_unroll Let_def)
+    qed
+    subgoal premises prems for s a b aa ba
+    proof -
+      have not_empty: "a \<noteq> []" using prems(2,3) by simp
+      then have a_eq: "a = butlast a @ [(aa, ba)]" using prems(4) by (metis append_butlast_last_id)
+      
+      have in_set: "(aa, ba) \<in> set a" 
+        using not_empty prems(4) last_in_set by metis
+  
+      have bound: "aa < ba"
+        using prems(1) prems(3) in_set unfolding dsc_inv_array_def by auto
+  
+      have mset_a: "mset a = mset (butlast a) + {#(aa, ba)#}"
+        using a_eq 
+        by (metis mset.simps(1,2) union_code)
+  
+      show ?thesis
+        using prems bound
+        unfolding dsc_rel_def
+        by (auto simp: mset_a intro!: helper descent1 descent2)
+    qed
+    subgoal premises prems for s
+    proof -
+      obtain t_cur a_cur where s_eq: "s = (t_cur, a_cur)" by (cases s) auto
+      have "t_cur = []" using prems(2) s_eq by auto
+      with prems(1) s_eq show ?thesis
+        unfolding dsc_inv_array_def
+        by (simp add: dsc_main_exec.simps)
+    qed
+    done
+qed
+
+
+fun filter_sgn_exe :: "('a::{sgn,zero}) list \<Rightarrow> 'a list" where
+  "filter_sgn_exe [] = []"
+| "filter_sgn_exe (x # xs) = 
+    (if x = 0 then filter_sgn_exe xs else sgn x # filter_sgn_exe xs)"
+
+fun remdups_adj_nc_exe :: "'a list \<Rightarrow> 'a list" where
+  "remdups_adj_nc_exe [] = []"
+| "remdups_adj_nc_exe [x] = [x]"
+| "remdups_adj_nc_exe (x # y # xs) = 
+    (if x = y then remdups_adj_nc_exe (y # xs) else x # remdups_adj_nc_exe (y # xs))"
+
+fun sign_changes_acc_exe :: "('a::{sgn,zero}) list \<Rightarrow> 'a \<Rightarrow> nat \<Rightarrow> nat" where
+  "sign_changes_acc_exe [] last_s n = n"
+| "sign_changes_acc_exe (x # xs) last_s n =
+    (if x = 0 then sign_changes_acc_exe xs last_s n
+     else if last_s = 0 then sign_changes_acc_exe xs (sgn x) 0
+     else if sgn x \<noteq> last_s then sign_changes_acc_exe xs (sgn x) (n + 1)
+     else sign_changes_acc_exe xs last_s n)"
+
+definition sign_changes_exe :: "('a::{sgn,zero}) list \<Rightarrow> nat" where
+  "sign_changes_exe xs = sign_changes_acc_exe xs 0 0"
+
+fun scale_poly_list_aux_exe :: "'a::comm_ring_1 \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  "scale_poly_list_aux_exe c acc [] = []"
+| "scale_poly_list_aux_exe c acc (x # xs) = (x * acc) # scale_poly_list_aux_exe c (acc * c) xs"
+
+definition scale_poly_list_exe :: "'a::comm_ring_1 \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  "scale_poly_list_exe c xs = scale_poly_list_aux_exe c 1 xs"
+
+fun scale_for_fractional_shift_exe :: "int \<Rightarrow> int \<Rightarrow> int list \<Rightarrow> int list" where
+  "scale_for_fractional_shift_exe den acc [] = []"
+| "scale_for_fractional_shift_exe den acc (x # xs) = (x * acc) # scale_for_fractional_shift_exe den (acc * den) xs"
+
+fun rev_acc_exe :: "'a list \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  "rev_acc_exe [] acc = acc"
+| "rev_acc_exe (x # xs) acc = rev_acc_exe xs (x # acc)"
+
+definition reverse_poly_list_exe :: "'a list \<Rightarrow> 'a list" where
+  "reverse_poly_list_exe xs = rev_acc_exe xs []"
+
+fun ruffini_step_exe :: "'a::comm_ring_1 \<Rightarrow> 'a \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  "ruffini_step_exe c a [] = [a]"
+| "ruffini_step_exe c a (q # qs) = (a + c * q) # ruffini_step_exe c q qs"
+
+fun taylor_shift_list_exe :: "'a::comm_ring_1 \<Rightarrow> 'a list \<Rightarrow> 'a list" where
+  "taylor_shift_list_exe c [] = []"
+| "taylor_shift_list_exe c (a # as) = ruffini_step_exe c a (taylor_shift_list_exe c as)"
+
+definition fractional_taylor_shift_exe :: "rat \<Rightarrow> int list \<Rightarrow> int list" where
+  "fractional_taylor_shift_exe c xs =
+    (let (n, d) = quotient_of c;
+         scaled_xs = reverse_poly_list_exe (scale_for_fractional_shift_exe d 1 (reverse_poly_list_exe xs))
+     in taylor_shift_list_exe n scaled_xs)"
+
+definition fast_descartes_list_int_exe :: "rat \<Rightarrow> rat \<Rightarrow> int list \<Rightarrow> nat" where
+  "fast_descartes_list_int_exe a b xs = 
+    (let 
+        (na, da) = quotient_of a;
+        p1 = fractional_taylor_shift_exe a xs;
+        
+        (nw, dw) = quotient_of ((b - a) * of_int da);
+        p3 = scale_for_fractional_shift_exe dw 1 (reverse_poly_list_exe (scale_poly_list_exe nw p1));
+        
+        p4 = (taylor_shift_list_exe :: int \<Rightarrow> int list \<Rightarrow> int list) 1 p3
+        
+     in sign_changes_exe p4)"
+
+partial_function (tailrec) dsc_main_int_exe ::
+  "int poly \<Rightarrow> (rat \<times> rat) list \<Rightarrow> (rat \<times> rat) list \<Rightarrow> (rat \<times> rat) list"
+where
+  [code]:
+  "dsc_main_int_exe P todo acc =
+     (case todo of
+        [] \<Rightarrow> acc
+      | (a,b) # todo' \<Rightarrow>
+          (let v = fast_descartes_list_int_exe a b (coeffs P) in
+           if v = 0 then
+             dsc_main_int_exe P todo' acc
+           else if v = 1 then
+             dsc_main_int_exe P todo' ((a,b) # acc)
+           else
+              (let m = (a + b) / 2;
+                   acc' = (if poly (map_poly of_int P) m = 0 then (m,m) # acc else acc)
+               in dsc_main_int_exe P ((a,m) # (m,b) # todo') acc')))"
+
+definition fast_descartes_list_int_ex :: "rat \<Rightarrow> rat \<Rightarrow> int list \<Rightarrow> nat" where
+  "fast_descartes_list_int_ex a b xs = 
+    (let 
+        (na, da) = quotient_of a;
+        p1 = fractional_taylor_shift_exe a xs;
+        
+        (nw, dw) = quotient_of ((b - a) * of_int da);
+        p3 = scale_for_fractional_shift_exe dw 1 (reverse_poly_list_exe (scale_poly_list_exe nw p1));
+        
+        p4 = (taylor_shift_list_exe :: int \<Rightarrow> int list \<Rightarrow> int list) 1 p3
+        
+     in Descartes_Sign_Rule.sign_changes p4)"
+
+partial_function (tailrec) dsc_main_int_ex ::
+  "int poly \<Rightarrow> (rat \<times> rat) list \<Rightarrow> (rat \<times> rat) list \<Rightarrow> (rat \<times> rat) list"
+where
+  [code]:
+  "dsc_main_int_ex P todo acc =
+     (case todo of
+        [] \<Rightarrow> acc
+      | (a,b) # todo' \<Rightarrow>
+          (let v = fast_descartes_list_int_ex a b (coeffs P) in
+           if v = 0 then
+             dsc_main_int_ex P todo' acc
+           else if v = 1 then
+             dsc_main_int_ex P todo' ((a,b) # acc)
+           else
+              (let m = (a + b) / 2;
+                   acc' = (if poly (map_poly of_int P) m = 0 then (m,m) # acc else acc)
+               in dsc_main_int_ex P ((a,m) # (m,b) # todo') acc')))"
+
+definition dsc_int_exe :: "rat \<Rightarrow> rat \<Rightarrow> int poly \<Rightarrow> (rat \<times> rat) list"
+where
+  "dsc_int_exe a b P = dsc_main_int_exe P [(a,b)] []"
+
+
+definition dsc_int_ex :: "rat \<Rightarrow> rat \<Rightarrow> int poly \<Rightarrow> (rat \<times> rat) list"
+where
+  "dsc_int_ex a b P = dsc_main_int_ex P [(a,b)] []"
+
+definition fast_descartes_list_exe :: "rat \<Rightarrow> rat \<Rightarrow> rat list \<Rightarrow> nat" where
+  "fast_descartes_list_exe a b xs = 
+    sign_changes_fold (taylor_shift_list 1 (rev (scale_poly_list (b - a) (taylor_shift_list a xs))))"
+
+partial_function (tailrec) dsc_main_exe ::
+  "rat poly \<Rightarrow> (rat \<times> rat) list \<Rightarrow> (rat \<times> rat) list \<Rightarrow> (rat \<times> rat) list"
+where
+  [code]:
+  "dsc_main_exe P todo acc =
+     (case todo of
+        [] \<Rightarrow> acc
+      | (a,b) # todo' \<Rightarrow>
+          (let v = fast_descartes_list_exe a b (coeffs P) in
+           if v = 0 then
+             dsc_main_exe P todo' acc
+           else if v = 1 then
+             dsc_main_exe P todo' ((a,b) # acc)
+           else
+             (let m = (a + b) / 2;
+                  acc' = (if poly P m = 0 then (m,m) # acc else acc)
+              in dsc_main_exe P ((a,m) # (m,b) # todo') acc')))"
+
+definition dsc_exe :: "rat \<Rightarrow> rat \<Rightarrow> rat poly \<Rightarrow> (rat \<times> rat) list"
+where
+  "dsc_exe a b P = (dsc_main_exe P [(a,b)] [])"
+
+partial_function (tailrec) dsc_main_exec_rat ::
+  "rat poly \<Rightarrow> (rat \<times> rat) list \<Rightarrow> (rat \<times> rat) list \<Rightarrow> (rat \<times> rat) list"
+where
+  [code]:
+  "dsc_main_exec_rat P todo acc =
+     (case todo of
+        [] \<Rightarrow> acc
+      | (a,b) # todo' \<Rightarrow>
+          (let v = descartes_roots_test_sc_rat a b P in
+           if v = 0 then
+             dsc_main_exec_rat P todo' acc
+           else if v = 1 then
+             dsc_main_exec_rat P todo' ((a,b) # acc)
+           else
+             (let m = (a + b) / 2;
+                  acc' = (if poly P m = 0 then (m,m) # acc else acc)
+              in dsc_main_exec_rat P ((a,m) # (m,b) # todo') acc')))"
+
+definition dsc_exec_rat :: "rat \<Rightarrow> rat \<Rightarrow> rat poly \<Rightarrow> (rat \<times> rat) list"
+where
+  "dsc_exec_rat a b P = (dsc_main_exec_rat P [(a,b)] [])"
 
 end

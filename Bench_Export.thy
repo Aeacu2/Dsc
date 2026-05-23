@@ -1,5 +1,5 @@
 theory Bench_Export
-  imports Dsc_Exec Sturm_Isolate HOL.Code_Numeral
+  imports Dsc_Int Sturm_Isolate HOL.Code_Numeral Dsc_Exec
 begin
 
 definition mk_nat :: "Code_Numeral.integer \<Rightarrow> nat" where
@@ -25,7 +25,7 @@ definition poly_rat :: "Code_Numeral.integer list \<Rightarrow> rat poly" where
 
 export_code
   mk_int mk_nat mk_rat mk_real poly_int poly_real poly_rat
-  dsc_exec newdsc_exec isolate degree
+  degree dsc_int newdsc_int dsc_exec newdsc_exec isolate
 in SML module_name Bench_Gen file "bench_gen.sml"
 
 end

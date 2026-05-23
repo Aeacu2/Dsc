@@ -3,6 +3,7 @@ theory Dsc_Exec
           Dsc_Bern
           NewDsc
           Algebraic_Numbers.Algebraic_Numbers_External_Code
+          Descartes_Sign_Rule.Descartes_Sign_Rule
 begin
 
 partial_function (tailrec) dsc_main_exec ::
@@ -372,5 +373,264 @@ proof -
     using tr by simp
 qed
 
+
+definition N_of :: "nat \<Rightarrow> nat" where
+  "N_of e = 2 ^ (2 ^ e)"
+
+lemma N_of_Nq:
+  "Nq (N_of e) = N_of (e + 1)"
+  unfolding N_of_def Nq_def
+  by (simp add: power_add[symmetric])
+
+lemma N_of_Nlin:
+  "Nlin (N_of e) = N_of (max 1 (e - 1))"
+proof (cases e)
+  case 0
+  have eq1: "N_of 0 = 2" 
+    unfolding N_of_def by simp
+  have eq2: "N_of (max 1 (0 - 1)) = 4" 
+    unfolding N_of_def by simp
+  have "sqrt (4::real) = sqrt (2\<^sup>2)" 
+    by simp
+  also have "\<dots> = 2" 
+    by simp
+  finally have "sqrt 4 = 2" .
+  have "(2::real) < 4" 
+    by simp
+  hence "sqrt 2 < sqrt 4" 
+    by (metis \<open>2 < 4\<close> real_sqrt_less_iff)
+  hence "sqrt 2 < 2" 
+    using `sqrt 4 = 2` by simp
+  hence "\<lfloor>sqrt 2\<rfloor> \<le> 1" 
+    by linarith
+  hence "nat \<lfloor>sqrt 2\<rfloor> \<le> 1" 
+    by linarith
+  hence "max 4 (nat \<lfloor>sqrt 2\<rfloor>) = 4" 
+    by simp
+  thus ?thesis 
+    unfolding Nlin_def eq1 eq2 
+    by (metis \<open>max 4 (nat \<lfloor>sqrt 2\<rfloor>) = 4\<close> "0" eq2 of_nat_eq_numeral_iff eq1)
+next
+  case (Suc k)
+  have "(2::nat) ^ (2 ^ Suc k) = (2::nat) ^ (2 * 2 ^ k)"
+    by simp
+  also have "\<dots> = ((2::nat) ^ (2 ^ k))\<^sup>2"
+    by (simp add: power_even_eq)
+  finally have "N_of (Suc k) = (N_of k)\<^sup>2"
+    unfolding N_of_def by simp
+  hence "real (N_of (Suc k)) = (real (N_of k))\<^sup>2"
+    by simp
+  hence "sqrt (real (N_of (Suc k))) = real (N_of k)"
+    by simp
+  hence "nat \<lfloor>sqrt (real (N_of (Suc k)))\<rfloor> = N_of k"
+    by simp
+  moreover have "max 4 (N_of k) = N_of (max 1 k)"
+  proof (cases k)
+    case 0
+    then show ?thesis 
+      unfolding N_of_def by simp
+  next
+    case (Suc k')
+    have "2 \<le> (2::nat) ^ k" 
+      using Suc by simp
+    hence "4 \<le> (2::nat) ^ (2 ^ k)"
+      using power_increasing[of 2 "2 ^ k" "2::nat"] by simp
+    hence "4 \<le> N_of k" 
+      unfolding N_of_def by simp
+    thus ?thesis 
+      using Suc by (simp add: max_def)
+  qed
+  ultimately show ?thesis
+    unfolding Nlin_def using Suc by simp
+qed
+
+partial_function (tailrec) newdsc_main_exec_e ::
+  "real poly \<Rightarrow> (real \<times> real \<times> nat) list \<Rightarrow> (real \<times> real) list \<Rightarrow> (real \<times> real) list"
+where
+  [code]:
+  "newdsc_main_exec_e P todo acc =
+     (case todo of
+        [] \<Rightarrow> acc
+      | (a,b,e) # todo' \<Rightarrow>
+          (let v = descartes_roots_test_sc a b P in
+           if v = 0 then
+             newdsc_main_exec_e P todo' acc
+           else if v = 1 then
+             newdsc_main_exec_e P todo' ((a,b) # acc)
+           else
+             (case try_blocks_sc a b (N_of e) P v of
+                Some I \<Rightarrow>
+                  newdsc_main_exec_e P ((fst I, snd I, e + 1) # todo') acc
+              | None \<Rightarrow>
+                  (case try_newton_sc a b (N_of e) P v of
+                     Some I \<Rightarrow>
+                       newdsc_main_exec_e P ((fst I, snd I, e + 1) # todo') acc
+                   | None \<Rightarrow>
+                       (let m  = (a + b) / 2;
+                            e' = max 1 (e - 1);
+                            acc' = (if poly P m = 0 then (m,m) # acc else acc)
+                        in newdsc_main_exec_e P ((a,m,e') # (m,b,e') # todo') acc')))))"
+
+definition newdsc_exec_e ::
+  "real \<Rightarrow> real \<Rightarrow> nat \<Rightarrow> real poly \<Rightarrow> (real \<times> real) list"
+where
+  "newdsc_exec_e a b e P = newdsc_main_exec_e P [(a,b,e)] []"
+
+lemma newdsc_main_exec_e_sim:
+  assumes dom:  "newdsc_dom (p,a,b,N_of e,P)"
+      and pdeg: "p = degree P"
+  shows
+    "newdsc_main_exec_e P ((a,b,e) # todo) acc =
+     newdsc_main_exec_e P todo (rev (newdsc p a b (N_of e) P) @ acc)"
+  using dom pdeg
+proof (induction p a b "N_of e" P arbitrary: e todo acc rule: newdsc.pinduct)
+  case (1 p a b P e todo acc)
+  let ?v = "Bernstein_changes p a b P"
+
+  have deg_p: "degree P = p"
+    using "1.prems" by (simp add: eq_commute)
+
+  have v_eq: "descartes_roots_test_sc a b P = ?v"
+    using deg_p by (simp add: descartes_roots_test_sc_eq_Bernstein_changes)
+
+  show ?case
+  proof (cases "?v = 0")
+    case v0: True
+    have nd0: "newdsc p a b (N_of e) P = []"
+      by (simp add: "1.hyps" newdsc.psimps v0)
+    show ?thesis
+      using nd0 newdsc_main_exec_e.simps Let_def v0 v_eq by auto
+  next
+    case v0: False
+    show ?thesis
+    proof (cases "?v = 1")
+      case v1: True
+      have nd1: "newdsc p a b (N_of e) P = [(a,b)]"
+        by (simp add: "1.hyps" newdsc.psimps v1)
+      show ?thesis
+        using nd1 newdsc_main_exec_e.simps Let_def v0 v1 v_eq by auto
+    next
+      case v1: False
+
+      show ?thesis
+      proof (cases "try_blocks p a b (N_of e) P ?v")
+        case (Some I)
+        have nd_block:
+          "newdsc p a b (N_of e) P = newdsc p (fst I) (snd I) (N_of (e + 1)) P"
+          using "1.hyps" newdsc.psimps v0 v1 Some N_of_Nq[symmetric] by simp
+
+        have main_block:
+          "newdsc_main_exec_e P ((a,b,e) # todo) acc =
+           newdsc_main_exec_e P ((fst I, snd I, e + 1) # todo) acc"
+          using Some newdsc_main_exec_e.simps Let_def v0 v1 v_eq
+                try_block_sc_eq "1.prems" by simp
+
+        have stepI:
+          "newdsc_main_exec_e P ((fst I, snd I, e + 1) # todo) acc =
+           newdsc_main_exec_e P todo (rev (newdsc p (fst I) (snd I) (N_of (e + 1)) P) @ acc)"
+          using v0 v1 Some deg_p N_of_Nq "1"(5) by blast
+
+        show ?thesis
+          using main_block stepI nd_block by simp
+      next
+        case TB0: None
+        show ?thesis
+        proof (cases "try_newton p a b (N_of e) P ?v")
+          case (Some I)
+          have nd_newton:
+            "newdsc p a b (N_of e) P = newdsc p (fst I) (snd I) (N_of (e + 1)) P"
+            using "1.hyps" newdsc.psimps v0 v1 TB0 Some N_of_Nq[symmetric] by simp
+
+          have main_newton:
+            "newdsc_main_exec_e P ((a,b,e) # todo) acc =
+             newdsc_main_exec_e P ((fst I, snd I, e + 1) # todo) acc"
+            using TB0 Some newdsc_main_exec_e.simps Let_def v0 v1 v_eq
+                  try_block_sc_eq try_newton_sc_eq deg_p by force
+
+          have stepI:
+            "newdsc_main_exec_e P ((fst I, snd I, e + 1) # todo) acc =
+             newdsc_main_exec_e P todo (rev (newdsc p (fst I) (snd I) (N_of (e + 1)) P) @ acc)"
+            using "1"(4) v0 v1 TB0 Some deg_p N_of_Nq by metis
+
+          show ?thesis
+            using main_newton stepI nd_newton by simp
+        next
+          case TN0: None
+          define m  where "m  = (a + b) / 2"
+          define e' where "e' = max 1 (e - 1)"
+
+          let ?mid = "(if poly P m = 0 then [(m,m)] else [])"
+
+          have nd_split:
+            "newdsc p a b (N_of e) P = ?mid @ newdsc p a m (N_of e') P @ newdsc p m b (N_of e') P"
+            using N_of_Nlin[symmetric] e'_def
+            by (simp add: "1.hyps" newdsc.psimps Let_def v0 v1 TB0 TN0 m_def N_of_Nlin)
+
+          have mid_acc_eq:
+             "(if poly P m = 0 then (m,m) # acc else acc) = ?mid @ acc"
+            by (cases "poly P m = 0"; simp)
+
+          have main_split:
+            "newdsc_main_exec_e P ((a,b,e) # todo) acc =
+             newdsc_main_exec_e P ((a,m,e') # (m,b,e') # todo) (?mid @ acc)"
+          proof -
+            have tmp:
+              "newdsc_main_exec_e P ((a,b,e) # todo) acc =
+                newdsc_main_exec_e P ((a,m,e') # (m,b,e') # todo)
+                 (if poly P m = 0 then (m,m) # acc else acc)"
+              by (smt (verit) TB0 TN0 newdsc_main_exec_e.simps Let_def v0 v1 v_eq m_def e'_def
+                    try_block_sc_eq try_newton_sc_eq deg_p list.case(2) option.case(1) prod.simps(2))
+            show ?thesis
+              using tmp by (simp add: mid_acc_eq)
+          qed
+
+          have stepL:
+            "newdsc_main_exec_e P ((a,m,e') # (m,b,e') # todo) (?mid @ acc) =
+             newdsc_main_exec_e P ((m,b,e') # todo)
+               (rev (newdsc p a m (N_of e') P) @ (?mid @ acc))"
+            using "1"(2) v0 v1 TB0 TN0 m_def e'_def deg_p N_of_Nlin by metis
+
+          have stepR:
+            "newdsc_main_exec_e P ((m,b,e') # todo)
+               (rev (newdsc p a m (N_of e') P) @ (?mid @ acc)) =
+             newdsc_main_exec_e P todo
+               (rev (newdsc p m b (N_of e') P) @ (rev (newdsc p a m (N_of e') P) @ (?mid @ acc)))"
+            using "1"(3) v0 v1 TB0 TN0 m_def e'_def deg_p N_of_Nlin by metis
+
+          have LHS_rewrite:
+            "newdsc_main_exec_e P ((a,b,e) # todo) acc =
+             newdsc_main_exec_e P todo
+               (rev (newdsc p m b (N_of e') P) @ rev (newdsc p a m (N_of e') P) @ ?mid @ acc)"
+            using main_split stepL stepR
+            by simp
+
+          have RHS_rewrite:
+            "newdsc_main_exec_e P todo (rev (newdsc p a b (N_of e) P) @ acc) =
+             newdsc_main_exec_e P todo
+               (rev (newdsc p m b (N_of e') P) @ rev (newdsc p a m (N_of e') P) @ ?mid @ acc)"
+            using nd_split
+            by simp
+
+          show ?thesis
+             using LHS_rewrite RHS_rewrite
+            by simp
+        qed
+      qed
+    qed
+  qed
+qed
+
+lemma newdsc_exec_e_eq_newdsc:
+  assumes dom:  "newdsc_dom (p,a,b,N_of e,P)"
+      and pdeg: "p = degree P"
+  shows "rev (newdsc_exec_e a b e P) = newdsc p a b (N_of e) P"
+proof -
+  have tr: "newdsc_exec_e a b e P = rev (newdsc p a b (N_of e) P)"
+    unfolding newdsc_exec_e_def
+    using newdsc_main_exec_e_sim[OF dom pdeg, of "[]::(real\<times>real\<times>nat) list" "[]::(real\<times>real) list"]
+    by (simp add: newdsc_main_exec_e.simps)
+  show ?thesis
+    using tr by simp
+qed
 
 end

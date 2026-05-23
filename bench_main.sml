@@ -293,14 +293,14 @@ type testcase = {name: string, coeffs: IntInf.int list}
 
 val cases : testcase list =
   [
-    { name = "pdf_P1", coeffs = P1_coeffs },
     { name = "pdf_P2", coeffs = P2_coeffs },
     { name = "pdf_P4", coeffs = P4_coeffs },
+    { name = "pdf_P1", coeffs = P1_coeffs },
     { name = "pdf_P3", coeffs = P3_coeffs },
     { name = "mignotte_n16_tau32",   coeffs = mignotte (16, 32)  },
+    { name = "mignotte_n8_tau128",   coeffs = mignotte (8, 128)  },
     { name = "mignotte_n32_tau16",   coeffs = mignotte (32, 16)  },
-    { name = "mignotte_n32_tau32",   coeffs = mignotte (32, 32)  },
-    { name = "mignotte_n8_tau128",   coeffs = mignotte (8, 128)  }
+    { name = "mignotte_n32_tau32",   coeffs = mignotte (32, 32)  }
   ]
 
 
@@ -311,17 +311,14 @@ val cases : testcase list =
 (* ============================================================
    Run
    ============================================================ *)
-
 val iters : int = 1
-val two : B.nat = B.mk_nat 2
-
-val zero_real : B.real B.zero = {zero = B.mk_real 0}
+val zero : B.nat = B.mk_nat 0
+val two: B.nat = B.mk_nat 2
 
 fun run_case ({name, coeffs}: testcase) : unit =
   let
     val coeffs' = trim coeffs
     val deg = List.length coeffs' - 1
-
     val bound : IntInf.int = cauchy_bound coeffs'
 
     val p_int  : B.int B.poly  = B.poly_int coeffs'
@@ -332,9 +329,6 @@ fun run_case ({name, coeffs}: testcase) : unit =
     val b_rat  : B.rat  = B.mk_rat bound 1
     val a_real : B.real = B.mk_real (~bound)
     val b_real : B.real = B.mk_real bound
-
-    (* dsc_tr_cache needs p = degree P *)
-    val degP : B.nat = B.degree zero_real p_real
   in
     print (String.concat [
       "--- case ", name,
@@ -342,22 +336,27 @@ fun run_case ({name, coeffs}: testcase) : unit =
       ", bound=", IntInf.toString bound,
       ") ---\n"
     ]);
-
+(* 
     print "starting isolate...\n";
     time_it (name ^ "_isolate") (fn () =>
-      repeatN iters (fn () =>
-        List.length (B.isolate a_rat b_rat p_int)));
+      repeatN iters (fn () => List.length (B.isolate a_rat b_rat p_int))); *)
 
-    print "starting dsc_tr_sc...\n";
+    print "starting dsc_int...\n";
+    time_it (name ^ "_dsc_int") (fn () =>
+      repeatN iters (fn () => List.length (B.dsc_int a_rat b_rat p_int)));
+
+    print "starting newdsc_int...\n";
+    time_it (name ^ "_newdsc_int") (fn () =>
+      repeatN iters (fn () => List.length (B.newdsc_int a_rat b_rat zero p_int)));
+
+    print "starting dsc_exec...\n";
     time_it (name ^ "_dsc_exec") (fn () =>
-      repeatN iters (fn () =>
-        List.length (B.dsc_exec a_real b_real p_real)));
-    
+      repeatN iters (fn () => List.length (B.dsc_exec a_real b_real p_real)));
+
     print "starting newdsc_exec...\n";
     time_it (name ^ "_newdsc_exec") (fn () =>
-      repeatN iters (fn () =>
-        List.length (B.newdsc_exec a_real b_real two p_real)));
-
+      repeatN iters (fn () => List.length (B.newdsc_exec a_real b_real two p_real)));
+      
     ()
   end
 
