@@ -42,9 +42,9 @@ Files corresponding to the paper sections:
 * **`Dsc_Exec.thy`**: Defines partial tail-recursive versions of the algorithms (`dsc_exec` and `newdsc_exec`) suitable for code generation, proving their equivalence with the verified functions.
 * **`Dsc_Rat.thy`**: Verifies a rational version of the Descartes root test, in preparation for the decomposition.
 * **`Dsc_Taylor.thy`**: Decomposes the root test into modular steps, in preparation for eliminating fractions.
-* **`Dsc_Int.thy`**: Eliminates fractions from the root test, verifying a fast integer-arithemetic version of the algorithm.
+* **`Dsc_Int.thy`**: Eliminates fractions from the root test, verifying a fast integer-arithemetic versions (`dsc_int` and `newdsc_int`) of the algorithm.
 * **`Sturm_Isolate.thy`**: Extracts the Sturm-based real root isolation function `isolate` developed by Joosten, Thiemann, and Yamada, customized to remove extra steps (like square-free factorization and packaging algebraic numbers) to ensure fair benchmarking.
-* **`Bench_Export.thy`**: Exports `isolate`, `dsc_exec`, and `newdsc_exec` to executable SML code (`bench_gen.sml`).
+* **`Bench_Export.thy`**: Exports `isolate`, `dsc_int`, `newdsc_int`, `dsc_exec`, and `newdsc_exec` to executable SML code (`bench_gen.sml`).
 * **`bench_main.sml`**: Runs performance comparisons between the Descartes-based algorithms and the Sturm baseline, testing on irreducible polynomials on random and Mignotte-type polynomials. The coefficients for random polynomials tested can be found inside.
 * **`Radical.thy`**: Defines and verifies radical operators for real and rational polynomials.
 * **`Supplementary_Functions.thy`**: Includes functions that were not as fast as the main executable exports, as well as total functions obtained by wrapping `dsc` and `newdsc` with radical operators.
