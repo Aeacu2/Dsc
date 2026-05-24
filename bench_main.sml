@@ -1,19 +1,16 @@
 structure B = Bench_Gen
 
-(* ============================================================
-   timing helpers
-   ============================================================ *)
-
 val sink : int ref = ref 0
 
 fun ms (t: Time.time) : real =
   Real.fromLargeInt (Time.toMilliseconds t)
 
-fun time_it (name: string) (th: unit -> int) : unit =
+fun time_it (name: string) (th: unit -> 'a list) : unit =
   let
     val rt = Timer.startRealTimer()
     val ct = Timer.startCPUTimer()
-    val k  = th()
+    val res = th ()
+    val k = List.length res
     val wall = Timer.checkRealTimer rt
     val {usr, sys} = Timer.checkCPUTimer ct
     val _ = sink := (!sink + k)
@@ -27,12 +24,28 @@ fun time_it (name: string) (th: unit -> int) : unit =
     ])
   end
 
-fun repeatN (n: int) (f: unit -> int) : int =
+fun time_it_looped (name: string) (iters: int) (th: unit -> 'a list) : unit =
   let
+    val rt = Timer.startRealTimer()
+    val ct = Timer.startCPUTimer()
+
     fun go (0, acc) = acc
-      | go (k, acc) = go (k-1, acc + f())
+      | go (k, acc) = go (k - 1, (k * List.length (th ())) + acc)
+
+    val sum_dummy = go (iters, 0)
+    val _ = sink := (!sink + sum_dummy)
+
+    val wall = Timer.checkRealTimer rt
+    val {usr, sys} = Timer.checkCPUTimer ct
+    val r_iters = Real.fromInt iters
   in
-    go (n, 0)
+    print (String.concat [
+      name, ",",
+      Real.toString (ms wall / r_iters), ",",
+      Real.toString (ms usr / r_iters), ",",
+      Real.toString (ms sys / r_iters), ",",
+      Int.toString (!sink), "\n"
+    ])
   end
 
 (* ============================================================
@@ -303,15 +316,6 @@ val cases : testcase list =
     { name = "mignotte_n32_tau32",   coeffs = mignotte (32, 32)  }
   ]
 
-
-
-
-
-
-(* ============================================================
-   Run
-   ============================================================ *)
-val iters : int = 1
 val zero : B.nat = B.mk_nat 0
 val two: B.nat = B.mk_nat 2
 
@@ -329,6 +333,8 @@ fun run_case ({name, coeffs}: testcase) : unit =
     val b_rat  : B.rat  = B.mk_rat bound 1
     val a_real : B.real = B.mk_real (~bound)
     val b_real : B.real = B.mk_real bound
+
+    val iters = if String.isPrefix "pdf_P" name then 100 else 1
   in
     print (String.concat [
       "--- case ", name,
@@ -336,27 +342,22 @@ fun run_case ({name, coeffs}: testcase) : unit =
       ", bound=", IntInf.toString bound,
       ") ---\n"
     ]);
-(* 
+    
     print "starting isolate...\n";
-    time_it (name ^ "_isolate") (fn () =>
-      repeatN iters (fn () => List.length (B.isolate a_rat b_rat p_int))); *)
-
-    print "starting dsc_int...\n";
-    time_it (name ^ "_dsc_int") (fn () =>
-      repeatN iters (fn () => List.length (B.dsc_int a_rat b_rat p_int)));
-
-    print "starting newdsc_int...\n";
-    time_it (name ^ "_newdsc_int") (fn () =>
-      repeatN iters (fn () => List.length (B.newdsc_int a_rat b_rat zero p_int)));
-
+    time_it (name ^ "_isolate") (fn () => B.isolate a_rat b_rat p_int);
+    
     print "starting dsc_exec...\n";
-    time_it (name ^ "_dsc_exec") (fn () =>
-      repeatN iters (fn () => List.length (B.dsc_exec a_real b_real p_real)));
-
+    time_it_looped (name ^ "_dsc_exec") iters(fn () => B.dsc_exec a_real b_real p_real);
+    
     print "starting newdsc_exec...\n";
-    time_it (name ^ "_newdsc_exec") (fn () =>
-      repeatN iters (fn () => List.length (B.newdsc_exec a_real b_real two p_real)));
-      
+    time_it (name ^ "_newdsc_exec") (fn () => B.newdsc_exec a_real b_real two p_real);
+    
+    print "starting dsc_int...\n";
+    time_it_looped (name ^ "_dsc_int") iters (fn () => B.dsc_int a_rat b_rat p_int);
+    
+    print "starting newdsc_int...\n";
+    time_it_looped (name ^ "_newdsc_int") iters (fn () => B.newdsc_int a_rat b_rat zero p_int);
+    
     ()
   end
 
